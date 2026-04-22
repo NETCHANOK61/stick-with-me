@@ -1,948 +1,592 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stick it</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Caveat:wght@700&display=swap"
-        rel="stylesheet" />
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #f0f4ff;
-            --cork: #d4956a;
-            --cork-dark: #b07040;
-            --yellow: #ffe135;
-            --pink: #ff6eb4;
-            --mint: #3de8b0;
-        }
-
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background: var(--bg);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 28px 16px 60px;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: radial-gradient(circle, #c8d4ff 1.5px, transparent 1.5px);
-            background-size: 28px 28px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .wrap {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 520px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .app-title {
-            font-family: 'Caveat', cursive;
-            font-size: 36px;
-            font-weight: 700;
-            color: #2a2a5a;
-        }
-
-        /* Board label */
-        .board-label {
-            align-self: flex-start;
-            font-size: 12px;
-            font-weight: 700;
-            color: #2a2a5a;
-            opacity: 0.6;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            padding-left: 4px;
-        }
-
-        /* Board */
-        .board {
-            width: 100%;
-            min-height: 320px;
-            background: var(--cork);
-            border-radius: 16px;
-            padding: 20px;
-            position: relative;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-            background-image:
-                radial-gradient(ellipse at 15% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 55%),
-                repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.025) 5px, rgba(0, 0, 0, 0.025) 6px);
-            border: 4px solid var(--cork-dark);
-            transition: box-shadow 0.2s;
-        }
-
-        .board.drag-over {
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 0 0 3px rgba(255, 255, 255, 0.4);
-        }
-
-        .board-frame {
-            position: absolute;
-            inset: 0;
-            border-radius: 13px;
-            border: 7px solid #8a5028;
-            pointer-events: none;
-            box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.25);
-        }
-
-        .notes-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            align-content: flex-start;
-            min-height: 260px;
-            padding: 6px 4px;
-        }
-
-        /* Done zone */
-        .done-zone {
-            width: 100%;
-            min-height: 160px;
-            background: #e8fdf4;
-            border-radius: 16px;
-            padding: 16px 20px;
-            border: 3px dashed #5de0a0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .done-zone.drag-over {
-            background: #d0fae8;
-            border-color: #22bb77;
-            border-style: solid;
-        }
-
-        .done-zone-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .done-zone-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1a8a55;
-        }
-
-        .done-count {
-            background: #22bb77;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-            border-radius: 20px;
-            padding: 1px 8px;
-        }
-
-        .done-hint {
-            font-size: 11px;
-            color: #88cca8;
-            align-self: center;
-            margin-top: 4px;
-        }
-
-        .done-notes-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-content: flex-start;
-        }
-
-        /* Note */
-        .note {
-            width: 150px;
-            min-height: 155px;
-            border-radius: 4px;
-            padding: 16px 12px 10px;
-            position: relative;
-            box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            transform: rotate(var(--rot));
-            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
-            cursor: grab;
-            user-select: none;
-        }
-
-        .note:active {
-            cursor: grabbing;
-        }
-
-        .note:hover {
-            transform: rotate(0deg) scale(1.05);
-            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.22);
-            z-index: 10;
-        }
-
-        .note.dragging {
-            opacity: 0.45;
-            transform: rotate(-2deg) scale(0.97);
-            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .note.yellow {
-            background: var(--yellow);
-        }
-
-        .note.pink {
-            background: var(--pink);
-        }
-
-        .note.mint {
-            background: var(--mint);
-        }
-
-        /* Done note — slightly faded */
-        .done-zone .note {
-            width: 130px;
-            min-height: 130px;
-            opacity: 0.82;
-            filter: saturate(0.7);
-        }
-
-        .done-zone .note:hover {
-            filter: saturate(1);
-            opacity: 1;
-        }
-
-        /* Pin */
-        .pin {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            position: absolute;
-            top: -7px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 3;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
-        }
-
-        .pin::after {
-            content: '';
-            position: absolute;
-            width: 4px;
-            height: 9px;
-            background: rgba(0, 0, 0, 0.18);
-            border-radius: 2px;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .pin.red {
-            background: radial-gradient(circle at 35% 30%, #ff9090, #e02020);
-        }
-
-        .pin.blue {
-            background: radial-gradient(circle at 35% 30%, #80b0ff, #2255dd);
-        }
-
-        .pin.purple {
-            background: radial-gradient(circle at 35% 30%, #d090ff, #8822cc);
-        }
-
-        .pin.green {
-            background: radial-gradient(circle at 35% 30%, #80ffb0, #22aa55);
-        }
-
-        .note-title {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 14px;
-            font-weight: 700;
-            color: rgba(0, 0, 0, 0.75);
-            background: transparent;
-            border: none;
-            outline: none;
-            width: 100%;
-            line-height: 1.4;
-            border-bottom: 2px solid rgba(0, 0, 0, 0.15);
-            padding-bottom: 4px;
-            cursor: text;
-        }
-
-        .note.pink .note-title {
-            color: rgba(255, 255, 255, 0.95);
-            border-bottom-color: rgba(255, 255, 255, 0.35);
-        }
-
-        .note.pink .note-title::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* Deadline */
-        .deadline-row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .deadline-icon {
-            font-size: 11px;
-            flex-shrink: 0;
-        }
-
-        .deadline-input {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 11px;
-            color: rgba(0, 0, 0, 0.55);
-            background: rgba(0, 0, 0, 0.05);
-            border: none;
-            outline: none;
-            border-radius: 4px;
-            padding: 2px 5px;
-            cursor: text;
-            width: 100%;
-        }
-
-        .deadline-input:focus {
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        .note.pink .deadline-input {
-            color: rgba(255, 255, 255, 0.8);
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .deadline-input.overdue {
-            color: #e03030 !important;
-            font-weight: 700;
-        }
-
-        .deadline-input.soon {
-            color: #cc7700 !important;
-            font-weight: 700;
-        }
-
-        .note.pink .deadline-input.overdue {
-            color: #ffcccc !important;
-        }
-
-        .note.pink .deadline-input.soon {
-            color: #ffe0aa !important;
-        }
-
-        .checklist {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-        }
-
-        .checklist li {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .checklist li input[type="checkbox"] {
-            width: 13px;
-            height: 13px;
-            cursor: pointer;
-            accent-color: #333;
-            flex-shrink: 0;
-        }
-
-        .note.pink .checklist li input[type="checkbox"] {
-            accent-color: #fff;
-        }
-
-        .item-text {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 12px;
-            color: rgba(0, 0, 0, 0.7);
-            background: transparent;
-            border: none;
-            outline: none;
-            width: 100%;
-            line-height: 1.4;
-            cursor: text;
-        }
-
-        .note.pink .item-text {
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .note.pink .item-text::placeholder {
-            color: rgba(255, 255, 255, 0.45);
-        }
-
-        .item-text.done {
-            text-decoration: line-through;
-            color: rgba(0, 0, 0, 0.35);
-        }
-
-        .note.pink .item-text.done {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .add-item-btn {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 11px;
-            color: rgba(0, 0, 0, 0.38);
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            text-align: left;
-            padding: 1px 0 0;
-        }
-
-        .add-item-btn:hover {
-            color: rgba(0, 0, 0, 0.65);
-        }
-
-        .note.pink .add-item-btn {
-            color: rgba(255, 255, 255, 0.45);
-        }
-
-        .note.pink .add-item-btn:hover {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .note-stickers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2px;
-            min-height: 2px;
-            margin-top: 1px;
-        }
-
-        .note-sticker {
-            font-size: 16px;
-            cursor: pointer;
-            line-height: 1;
-            transition: transform 0.1s;
-        }
-
-        .note-sticker:hover {
-            transform: scale(1.35);
-        }
-
-        .delete-note {
-            position: absolute;
-            top: 5px;
-            right: 7px;
-            font-size: 12px;
-            color: rgba(0, 0, 0, 0.22);
-            background: none;
-            border: none;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.15s;
-            line-height: 1;
-        }
-
-        .note.pink .delete-note {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .note:hover .delete-note {
-            opacity: 1;
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 0 2px;
-            flex-wrap: wrap;
-        }
-
-        .btn-add {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            padding: 9px 22px;
-            border-radius: 30px;
-            border: none;
-            background: #2a2a5a;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 3px 3px 0 #111133;
-            transition: transform 0.1s, box-shadow 0.1s;
-            white-space: nowrap;
-        }
-
-        .btn-add:hover {
-            transform: translate(-1px, -1px);
-            box-shadow: 4px 4px 0 #111133;
-        }
-
-        .btn-add:active {
-            transform: translate(1px, 1px);
-            box-shadow: 1px 1px 0 #111133;
-        }
-
-        .color-swatches {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-left: auto;
-        }
-
-        .swatch {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
-            transition: transform 0.1s;
-        }
-
-        .swatch:hover {
-            transform: scale(1.2);
-        }
-
-        .swatch.selected {
-            border-color: #2a2a5a;
-            transform: scale(1.15);
-        }
-
-        .swatch.yellow {
-            background: var(--yellow);
-        }
-
-        .swatch.pink {
-            background: var(--pink);
-        }
-
-        .swatch.mint {
-            background: var(--mint);
-        }
-
-        /* Sticker bar */
-        .sticker-bar {
-            width: 100%;
-            background: #fff;
-            border-radius: 14px;
-            padding: 12px 14px;
-            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
-            border: 2px solid #dde2ff;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .sticker-bar-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #2a2a5a;
-        }
-
-        .sticker-cats {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .sticker-cat-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sticker-cat-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: #aaa;
-            width: 44px;
-            flex-shrink: 0;
-        }
-
-        .sticker-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-
-        .sticker-btn {
-            font-size: 22px;
-            background: #f5f6ff;
-            border: 2px solid transparent;
-            border-radius: 10px;
-            width: 42px;
-            height: 42px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.1s, transform 0.1s, border-color 0.1s;
-            line-height: 1;
-        }
-
-        .sticker-btn:hover {
-            background: #eaecff;
-            transform: scale(1.15);
-        }
-
-        .sticker-btn.active {
-            border-color: #2a2a5a;
-            background: #dde2ff;
-        }
-
-        .sticker-hint {
-            font-size: 11px;
-            color: #bbb;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stick it</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Caveat:wght@700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4ff;
+    --cork: #d4956a;
+    --cork-dark: #b07040;
+    --yellow: #ffe135;
+    --pink: #ff6eb4;
+    --mint: #3de8b0;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 12px 8px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, #c8d4ff 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 980px;
+    height: 100%;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .app-title {
+    font-family: 'Caveat', cursive;
+    font-size: 28px; font-weight: 700; color: #2a2a5a;
+    line-height: 1;
+  }
+  .btn-add {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px; font-weight: 700;
+    padding: 6px 16px; border-radius: 30px; border: none;
+    background: #2a2a5a; color: #fff; cursor: pointer;
+    box-shadow: 2px 2px 0 #111133;
+    transition: transform 0.1s, box-shadow 0.1s; white-space: nowrap;
+  }
+  .btn-add:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #111133; }
+  .btn-add:active { transform: translate(1px,1px); box-shadow: 0px 0px 0 #111133; }
+
+  .color-swatches { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    transition: transform 0.1s; flex-shrink: 0;
+  }
+  .swatch:hover { transform: scale(1.2); }
+  .swatch.selected { border-color: #2a2a5a; transform: scale(1.15); }
+  .swatch.yellow { background: var(--yellow); }
+  .swatch.pink   { background: var(--pink); }
+  .swatch.mint   { background: var(--mint); }
+
+  /* Main area: boards + sidebar */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr 160px;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Boards */
+  .board-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .col-label {
+    font-size: 11px; font-weight: 700; color: #2a2a5a;
+    opacity: 0.55; letter-spacing: 0.5px; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .board {
+    flex: 1; min-height: 0;
+    background: var(--cork); border-radius: 12px; padding: 14px;
+    position: relative;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.16);
+    background-image:
+      radial-gradient(ellipse at 15% 20%, rgba(255,255,255,0.12) 0%, transparent 55%),
+      repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.025) 5px, rgba(0,0,0,0.025) 6px);
+    border: 3px solid var(--cork-dark);
+    transition: box-shadow 0.2s;
+    overflow-y: auto;
+  }
+  .board.drag-over { box-shadow: 0 6px 20px rgba(0,0,0,0.16), inset 0 0 0 3px rgba(255,255,255,0.5); }
+  .board-frame {
+    position: absolute; inset: 0; border-radius: 10px;
+    border: 6px solid #8a5028; pointer-events: none;
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.22);
+  }
+
+  /* Done board */
+  .done-board {
+    flex: 1; min-height: 0;
+    background: #e6fdf2; border-radius: 12px; padding: 14px;
+    border: 3px dashed #5de0a0;
+    overflow-y: auto;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .done-board.drag-over {
+    background: #ccf9e4; border-color: #22bb77; border-style: solid;
+  }
+  .done-header {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+  }
+  .done-title { font-size: 12px; font-weight: 700; color: #1a8a55; }
+  .done-count {
+    background: #22bb77; color: #fff;
+    font-size: 10px; font-weight: 700;
+    border-radius: 20px; padding: 1px 7px;
+  }
+  .done-hint { font-size: 11px; color: #88ccaa; text-align: center; margin-top: 20px; }
+
+  .notes-area {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-content: flex-start; min-height: 100%;
+  }
+
+  /* Note */
+  .note {
+    width: calc(50% - 5px);
+    min-height: 120px;
+    border-radius: 3px; padding: 14px 10px 8px;
+    position: relative;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; gap: 4px;
+    transform: rotate(var(--rot));
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+    cursor: grab; user-select: none;
+  }
+  .note:active { cursor: grabbing; }
+  .note:hover {
+    transform: rotate(0deg) scale(1.04);
+    box-shadow: 5px 5px 0px rgba(0,0,0,0.22);
+    z-index: 10;
+  }
+  .note.dragging { opacity: 0.4; transform: rotate(-1deg) scale(0.97); }
+  .note.yellow { background: var(--yellow); }
+  .note.pink   { background: var(--pink); }
+  .note.mint   { background: var(--mint); }
+
+  .done-board .note {
+    width: calc(50% - 5px);
+    opacity: 0.8; filter: saturate(0.65);
+  }
+  .done-board .note:hover { filter: saturate(1); opacity: 1; }
+
+  /* Pin */
+  .pin {
+    width: 13px; height: 13px; border-radius: 50%;
+    position: absolute; top: -6px; left: 50%;
+    transform: translateX(-50%); z-index: 3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .pin::after {
+    content: ''; position: absolute;
+    width: 3px; height: 7px; background: rgba(0,0,0,0.18);
+    border-radius: 2px; top: 10px; left: 50%; transform: translateX(-50%);
+  }
+  .pin.red    { background: radial-gradient(circle at 35% 30%, #ff9090, #e02020); }
+  .pin.blue   { background: radial-gradient(circle at 35% 30%, #80b0ff, #2255dd); }
+  .pin.purple { background: radial-gradient(circle at 35% 30%, #d090ff, #8822cc); }
+  .pin.green  { background: radial-gradient(circle at 35% 30%, #80ffb0, #22aa55); }
+
+  .note-title {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.75);
+    background: transparent; border: none; outline: none; width: 100%;
+    line-height: 1.4; border-bottom: 2px solid rgba(0,0,0,0.12); padding-bottom: 3px; cursor: text;
+  }
+  .note.pink .note-title { color: rgba(255,255,255,0.95); border-bottom-color: rgba(255,255,255,0.3); }
+  .note.pink .note-title::placeholder { color: rgba(255,255,255,0.5); }
+
+  .deadline-row { display: flex; align-items: center; gap: 3px; }
+  .deadline-icon { font-size: 10px; flex-shrink: 0; }
+  .deadline-input {
+    font-family: 'Sarabun', sans-serif; font-size: 10px; color: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.05); border: none; outline: none;
+    border-radius: 3px; padding: 1px 4px; cursor: text; width: 100%;
+  }
+  .deadline-input:focus { background: rgba(0,0,0,0.1); }
+  .note.pink .deadline-input { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.15); }
+  .deadline-input.overdue { color: #e03030 !important; font-weight: 700; }
+  .deadline-input.soon    { color: #cc7700 !important; font-weight: 700; }
+  .note.pink .deadline-input.overdue { color: #ffcccc !important; }
+  .note.pink .deadline-input.soon    { color: #ffe0aa !important; }
+
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .checklist li { display: flex; align-items: center; gap: 4px; }
+  .checklist li input[type="checkbox"] { width: 12px; height: 12px; cursor: pointer; accent-color: #333; flex-shrink: 0; }
+  .note.pink .checklist li input[type="checkbox"] { accent-color: #fff; }
+  .item-text {
+    font-family: 'Sarabun', sans-serif; font-size: 11px; color: rgba(0,0,0,0.7);
+    background: transparent; border: none; outline: none; width: 100%; line-height: 1.4; cursor: text;
+  }
+  .note.pink .item-text { color: rgba(255,255,255,0.9); }
+  .note.pink .item-text::placeholder { color: rgba(255,255,255,0.45); }
+  .item-text.done { text-decoration: line-through; color: rgba(0,0,0,0.32); }
+  .note.pink .item-text.done { color: rgba(255,255,255,0.38); }
+
+  .add-item-btn {
+    font-family: 'Sarabun', sans-serif; font-size: 10px;
+    color: rgba(0,0,0,0.35); background: transparent;
+    border: none; cursor: pointer; text-align: left; padding: 1px 0 0;
+  }
+  .add-item-btn:hover { color: rgba(0,0,0,0.6); }
+  .note.pink .add-item-btn { color: rgba(255,255,255,0.4); }
+  .note.pink .add-item-btn:hover { color: rgba(255,255,255,0.75); }
+
+  .note-stickers { display: flex; flex-wrap: wrap; gap: 1px; margin-top: 1px; }
+  .note-sticker { font-size: 14px; cursor: pointer; line-height: 1; transition: transform 0.1s; }
+  .note-sticker:hover { transform: scale(1.3); }
+
+  .delete-note {
+    position: absolute; top: 4px; right: 5px;
+    font-size: 10px; color: rgba(0,0,0,0.2);
+    background: none; border: none; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s; line-height: 1;
+  }
+  .note.pink .delete-note { color: rgba(255,255,255,0.45); }
+  .note:hover .delete-note { opacity: 1; }
+
+  /* Sidebar sticker bar */
+  .sidebar {
+    display: flex; flex-direction: column; gap: 6px; min-height: 0;
+  }
+  .sidebar-label {
+    font-size: 11px; font-weight: 700; color: #2a2a5a; opacity: 0.55;
+    letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0;
+  }
+  .sticker-bar {
+    flex: 1; background: #fff; border-radius: 12px;
+    padding: 10px; border: 2px solid #dde2ff;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.07);
+    display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden;
+  }
+  .sticker-cats { display: flex; flex-direction: column; gap: 8px; }
+  .sticker-cat-row { display: flex; flex-direction: column; gap: 4px; }
+  .sticker-cat-label { font-size: 10px; font-weight: 700; color: #aaa; }
+  .sticker-group { display: flex; gap: 4px; }
+  .sticker-btn {
+    font-size: 18px; background: #f5f6ff;
+    border: 2px solid transparent; border-radius: 8px;
+    width: 36px; height: 36px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, transform 0.1s, border-color 0.1s; line-height: 1;
+    flex-shrink: 0;
+  }
+  .sticker-btn:hover { background: #eaecff; transform: scale(1.12); }
+  .sticker-btn.active { border-color: #2a2a5a; background: #dde2ff; }
+  .sticker-hint { font-size: 10px; color: #bbb; line-height: 1.4; }
+</style>
 </head>
-
 <body>
-    <div class="wrap">
-        <div class="app-title">Stick it 📌</div>
+<div class="wrap">
 
-        <div class="toolbar">
-            <button class="btn-add" onclick="addNote()">+ โน้ตใหม่</button>
-            <div class="color-swatches">
-                <div class="swatch yellow selected" data-color="yellow" onclick="selectColor(this)" title="เหลือง">
-                </div>
-                <div class="swatch pink" data-color="pink" onclick="selectColor(this)" title="ชมพู"></div>
-                <div class="swatch mint" data-color="mint" onclick="selectColor(this)" title="มิ้นต์"></div>
-            </div>
-        </div>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="app-title">Stick it 📌</div>
+    <button class="btn-add" onclick="addNote()">+ โน้ตใหม่</button>
+    <div class="color-swatches">
+      <div class="swatch yellow selected" data-color="yellow" onclick="selectColor(this)" title="เหลือง"></div>
+      <div class="swatch pink"   data-color="pink"   onclick="selectColor(this)" title="ชมพู"></div>
+      <div class="swatch mint"   data-color="mint"   onclick="selectColor(this)" title="มิ้นต์"></div>
+    </div>
+  </div>
 
-        <div class="board-label">กำลังทำอยู่</div>
-        <div class="board" id="boardZone">
-            <div class="board-frame"></div>
-            <div class="notes-area" id="notesArea"></div>
-        </div>
+  <!-- Main -->
+  <div class="main">
 
-        <div class="done-zone" id="doneZone">
-            <div class="done-zone-header">
-                <span style="font-size:18px;">✅</span>
-                <span class="done-zone-title">เสร็จแล้ว</span>
-                <span class="done-count" id="doneCount">0</span>
-            </div>
-            <div class="done-notes-area" id="doneArea"></div>
-            <div class="done-hint" id="doneHint">ลากโน้ตที่ทำเสร็จมาวางที่นี่</div>
-        </div>
-
-        <div class="sticker-bar">
-            <div class="sticker-bar-label">ไอคอน — เลือกแล้วคลิกที่โน้ต</div>
-            <div class="sticker-cats" id="stickerCats"></div>
-            <div class="sticker-hint" id="stickerHint">เลือกไอคอนก่อน แล้วคลิกบนโน้ตเพื่อแปะ</div>
-        </div>
+    <!-- Left: กำลังทำ -->
+    <div class="board-col">
+      <div class="col-label">กำลังทำอยู่</div>
+      <div class="board" id="boardZone">
+        <div class="board-frame"></div>
+        <div class="notes-area" id="notesArea"></div>
+      </div>
     </div>
 
-    <script>
-        const STICKERS = [
-            { emoji: '💼', label: 'งาน' }, { emoji: '📋', label: 'งาน' },
-            { emoji: '📊', label: 'งาน' }, { emoji: '📅', label: 'งาน' },
-            { emoji: '⏰', label: 'งาน' }, { emoji: '✅', label: 'งาน' },
-            { emoji: '📧', label: 'งาน' }, { emoji: '💡', label: 'งาน' },
-            { emoji: '🏠', label: 'ส่วนตัว' }, { emoji: '❤️', label: 'ส่วนตัว' },
-            { emoji: '🛒', label: 'ส่วนตัว' }, { emoji: '🏃', label: 'ส่วนตัว' },
-            { emoji: '🍳', label: 'ส่วนตัว' }, { emoji: '💊', label: 'ส่วนตัว' },
-            { emoji: '📚', label: 'ส่วนตัว' }, { emoji: '🎮', label: 'ส่วนตัว' },
-            { emoji: '✈️', label: 'เที่ยว' }, { emoji: '🗺️', label: 'เที่ยว' },
-            { emoji: '🏨', label: 'เที่ยว' }, { emoji: '🧳', label: 'เที่ยว' },
-            { emoji: '📸', label: 'เที่ยว' }, { emoji: '🍜', label: 'เที่ยว' },
-            { emoji: '🚗', label: 'เที่ยว' }, { emoji: '🌏', label: 'เที่ยว' },
-        ];
-        const PINS = ['red', 'blue', 'purple', 'green'];
-        const ROTATIONS = [-2, 1.5, -1, 2.5, -0.5, 1, -2.5, 0.5];
+    <!-- Middle: เสร็จแล้ว -->
+    <div class="board-col">
+      <div class="col-label">เสร็จแล้ว</div>
+      <div class="done-board" id="doneZone">
+        <div class="done-header">
+          <span style="font-size:16px;">✅</span>
+          <span class="done-title">ลากโน้ตมาวางที่นี่</span>
+          <span class="done-count" id="doneCount">0</span>
+        </div>
+        <div class="notes-area" id="doneArea"></div>
+        <div class="done-hint" id="doneHint">ยังไม่มีโน้ตที่เสร็จ</div>
+      </div>
+    </div>
 
-        let selectedColor = 'yellow';
-        let selectedSticker = null;
-        let dragId = null;
+    <!-- Right: Sticker sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">ไอคอน</div>
+      <div class="sticker-bar">
+        <div class="sticker-cats" id="stickerCats"></div>
+        <div class="sticker-hint" id="stickerHint">เลือกแล้วคลิกโน้ต</div>
+      </div>
+    </div>
 
-        const DEFAULT_NOTES = [
-            {
-                id: 1, title: 'รายการซื้อของ', color: 'yellow', pin: 'red', stickers: ['🛒'], deadline: '', done: false,
-                items: [{ text: 'นม', done: false }, { text: 'ไข่', done: true }, { text: 'ขนมปัง', done: false }]
-            },
-            {
-                id: 2, title: 'งานที่ต้องทำ', color: 'mint', pin: 'blue', stickers: ['💼'], deadline: '', done: false,
-                items: [{ text: 'ส่งรายงาน', done: false }, { text: 'ประชุมทีม', done: false }]
-            },
-            {
-                id: 3, title: 'แผนเที่ยว', color: 'pink', pin: 'purple', stickers: ['✈️'], deadline: '', done: false,
-                items: [{ text: 'จองตั๋ว', done: false }, { text: 'จองโรงแรม', done: false }]
-            },
-        ];
+  </div>
+</div>
 
-        function loadData() {
-            try {
-                const s = localStorage.getItem('stickit-notes');
-                const id = localStorage.getItem('stickit-nextid');
-                return { notes: s ? JSON.parse(s) : DEFAULT_NOTES, nextId: id ? parseInt(id) : 4 };
-            } catch (e) { return { notes: DEFAULT_NOTES, nextId: 4 }; }
-        }
+<script>
+  const STICKERS = [
+    { emoji: '💼', label: 'งาน' }, { emoji: '📅', label: 'งาน' }, { emoji: '✅', label: 'งาน' },
+    { emoji: '🏠', label: 'ส่วนตัว' }, { emoji: '❤️', label: 'ส่วนตัว' }, { emoji: '🛒', label: 'ส่วนตัว' },
+    { emoji: '✈️', label: 'เที่ยว' }, { emoji: '🧳', label: 'เที่ยว' }, { emoji: '📸', label: 'เที่ยว' },
+  ];
+  const PINS = ['red','blue','purple','green'];
+  const ROTATIONS = [-2, 1.5, -1, 2.5, -0.5, 1, -2.5, 0.5];
 
-        function save() {
-            try {
-                localStorage.setItem('stickit-notes', JSON.stringify(notes));
-                localStorage.setItem('stickit-nextid', String(nextId));
-            } catch (e) { }
-        }
+  let selectedColor = 'yellow';
+  let selectedSticker = null;
+  let dragId = null;
 
-        const _loaded = loadData();
-        let notes = _loaded.notes;
-        let nextId = _loaded.nextId;
+  const DEFAULT_NOTES = [
+    { id: 1, title: 'รายการซื้อของ', color: 'yellow', pin: 'red', stickers: ['🛒'], deadline: '', done: false,
+      items: [{text:'นม', done: false},{text:'ไข่', done: true},{text:'ขนมปัง', done: false}] },
+    { id: 2, title: 'งานที่ต้องทำ', color: 'mint', pin: 'blue', stickers: ['💼'], deadline: '', done: false,
+      items: [{text:'ส่งรายงาน', done: false},{text:'ประชุมทีม', done: false}] },
+    { id: 3, title: 'แผนเที่ยว', color: 'pink', pin: 'purple', stickers: ['✈️'], deadline: '', done: false,
+      items: [{text:'จองตั๋ว', done: false},{text:'จองโรงแรม', done: false}] },
+  ];
 
-        function deadlineClass(dl) {
-            if (!dl) return '';
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const d = new Date(dl); d.setHours(0, 0, 0, 0);
-            const diff = (d - today) / 86400000;
-            if (diff < 0) return 'overdue';
-            if (diff <= 2) return 'soon';
-            return '';
-        }
+  function loadData() {
+    try {
+      const s = localStorage.getItem('stickit-notes');
+      const id = localStorage.getItem('stickit-nextid');
+      return { notes: s ? JSON.parse(s) : DEFAULT_NOTES, nextId: id ? parseInt(id) : 4 };
+    } catch(e) { return { notes: DEFAULT_NOTES, nextId: 4 }; }
+  }
 
-        function deadlineDisplay(dl) {
-            if (!dl) return '';
-            const d = new Date(dl);
-            return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-        }
+  function save() {
+    try {
+      localStorage.setItem('stickit-notes', JSON.stringify(notes));
+      localStorage.setItem('stickit-nextid', String(nextId));
+    } catch(e) {}
+  }
 
-        function buildStickerGrid() {
-            const cats = ['งาน', 'ส่วนตัว', 'เที่ยว'];
-            const container = document.getElementById('stickerCats');
-            container.innerHTML = '';
-            cats.forEach(cat => {
-                const row = document.createElement('div');
-                row.className = 'sticker-cat-row';
-                const lbl = document.createElement('span');
-                lbl.className = 'sticker-cat-label';
-                lbl.textContent = cat;
-                row.appendChild(lbl);
-                const grp = document.createElement('div');
-                grp.className = 'sticker-group';
-                STICKERS.filter(s => s.label === cat).forEach(s => {
-                    const btn = document.createElement('button');
-                    btn.className = 'sticker-btn';
-                    btn.textContent = s.emoji;
-                    btn.onclick = () => toggleSticker(s.emoji, btn);
-                    grp.appendChild(btn);
-                });
-                row.appendChild(grp);
-                container.appendChild(row);
-            });
-        }
+  const _d = loadData();
+  let notes = _d.notes;
+  let nextId = _d.nextId;
 
-        function toggleSticker(s, btn) {
-            if (selectedSticker === s) {
-                selectedSticker = null;
-                document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById('stickerHint').textContent = 'เลือกไอคอนก่อน แล้วคลิกบนโน้ตเพื่อแปะ';
-            } else {
-                selectedSticker = s;
-                document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('stickerHint').textContent = `เลือก ${s} แล้ว — คลิกบนโน้ตเพื่อแปะ`;
-            }
-            render();
-        }
+  function deadlineClass(dl) {
+    if (!dl) return '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(dl); d.setHours(0,0,0,0);
+    const diff = (d - today) / 86400000;
+    if (diff < 0) return 'overdue';
+    if (diff <= 2) return 'soon';
+    return '';
+  }
 
-        function applySticker(noteId, e) {
-            if (!selectedSticker) return;
-            e.stopPropagation();
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.stickers.push(selectedSticker); save(); render(); }
-        }
+  function buildStickerGrid() {
+    const cats = ['งาน','ส่วนตัว','เที่ยว'];
+    const container = document.getElementById('stickerCats');
+    container.innerHTML = '';
+    cats.forEach(cat => {
+      const row = document.createElement('div');
+      row.className = 'sticker-cat-row';
+      const lbl = document.createElement('span');
+      lbl.className = 'sticker-cat-label';
+      lbl.textContent = cat;
+      row.appendChild(lbl);
+      const grp = document.createElement('div');
+      grp.className = 'sticker-group';
+      STICKERS.filter(s => s.label === cat).forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'sticker-btn';
+        btn.textContent = s.emoji;
+        btn.onclick = () => toggleSticker(s.emoji, btn);
+        grp.appendChild(btn);
+      });
+      row.appendChild(grp);
+      container.appendChild(row);
+    });
+  }
 
-        function removeSticker(noteId, idx, e) {
-            e.stopPropagation();
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.stickers.splice(idx, 1); save(); render(); }
-        }
+  function toggleSticker(s, btn) {
+    if (selectedSticker === s) {
+      selectedSticker = null;
+      document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('stickerHint').textContent = 'เลือกแล้วคลิกโน้ต';
+    } else {
+      selectedSticker = s;
+      document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('stickerHint').textContent = `${s} — คลิกโน้ตเพื่อแปะ`;
+    }
+    render();
+  }
 
-        function selectColor(el) {
-            document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedColor = el.dataset.color;
-        }
+  function applySticker(noteId, e) {
+    if (!selectedSticker) return;
+    e.stopPropagation();
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.stickers.push(selectedSticker); save(); render(); }
+  }
 
-        function addNote() {
-            const pin = PINS[Math.floor(Math.random() * PINS.length)];
-            notes.push({ id: nextId++, title: 'โน้ตใหม่', color: selectedColor, pin, stickers: [], deadline: '', done: false, items: [] });
-            save(); render();
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('#notesArea .note-title');
-                if (inputs.length) { const last = inputs[inputs.length - 1]; last.focus(); last.select(); }
-            }, 30);
-        }
+  function removeSticker(noteId, idx, e) {
+    e.stopPropagation();
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.stickers.splice(idx, 1); save(); render(); }
+  }
 
-        function deleteNote(id) {
-            notes = notes.filter(n => n.id !== id);
-            save(); render();
-        }
+  function selectColor(el) {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = el.dataset.color;
+  }
 
-        function addItem(noteId) {
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.items.push({ text: '', done: false }); save(); render(); }
-            setTimeout(() => {
-                const items = document.querySelectorAll(`[data-note="${noteId}"] .item-text`);
-                if (items.length) items[items.length - 1].focus();
-            }, 30);
-        }
+  function addNote() {
+    const pin = PINS[Math.floor(Math.random() * PINS.length)];
+    notes.push({ id: nextId++, title: 'โน้ตใหม่', color: selectedColor, pin, stickers: [], deadline: '', done: false, items: [] });
+    save(); render();
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('#notesArea .note-title');
+      if (inputs.length) { const last = inputs[inputs.length-1]; last.focus(); last.select(); }
+    }, 30);
+  }
 
-        function toggleItem(noteId, idx) {
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.items[idx].done = !n.items[idx].done; save(); render(); }
-        }
+  function deleteNote(id) {
+    notes = notes.filter(n => n.id !== id);
+    save(); render();
+  }
 
-        function updateTitle(noteId, val) {
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.title = val; save(); }
-        }
+  function addItem(noteId) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.items.push({text:'', done: false}); save(); render(); }
+    setTimeout(() => {
+      const items = document.querySelectorAll(`[data-note="${noteId}"] .item-text`);
+      if (items.length) items[items.length-1].focus();
+    }, 30);
+  }
 
-        function updateItem(noteId, idx, val) {
-            const n = notes.find(n => n.id === noteId);
-            if (n && n.items[idx]) { n.items[idx].text = val; save(); }
-        }
+  function toggleItem(noteId, idx) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.items[idx].done = !n.items[idx].done; save(); render(); }
+  }
 
-        function updateDeadline(noteId, val) {
-            const n = notes.find(n => n.id === noteId);
-            if (n) { n.deadline = val; save(); render(); }
-        }
+  function updateTitle(noteId, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.title = val; save(); }
+  }
 
-        /* Drag and drop */
-        function onDragStart(e, id) {
-            dragId = id;
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => {
-                const el = document.querySelector(`[data-note="${id}"]`);
-                if (el) el.classList.add('dragging');
-            }, 0);
-        }
+  function updateItem(noteId, idx, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n && n.items[idx]) { n.items[idx].text = val; save(); }
+  }
 
-        function onDragEnd(id) {
-            dragId = null;
-            const el = document.querySelector(`[data-note="${id}"]`);
-            if (el) el.classList.remove('dragging');
-            document.getElementById('boardZone').classList.remove('drag-over');
-            document.getElementById('doneZone').classList.remove('drag-over');
-        }
+  function updateDeadline(noteId, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.deadline = val; save(); render(); }
+  }
 
-        function setupDropZone(zoneId, targetDone) {
-            const zone = document.getElementById(zoneId);
-            zone.addEventListener('dragover', e => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                zone.classList.add('drag-over');
-            });
-            zone.addEventListener('dragleave', e => {
-                if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
-            });
-            zone.addEventListener('drop', e => {
-                e.preventDefault();
-                zone.classList.remove('drag-over');
-                if (dragId === null) return;
-                const n = notes.find(n => n.id === dragId);
-                if (n && n.done !== targetDone) {
-                    n.done = targetDone;
-                    save(); render();
-                }
-            });
-        }
+  function onDragStart(e, id) {
+    dragId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => {
+      const el = document.querySelector(`[data-note="${id}"]`);
+      if (el) el.classList.add('dragging');
+    }, 0);
+  }
 
-        function buildNote(note, ni) {
-            const rot = ROTATIONS[ni % ROTATIONS.length];
-            const div = document.createElement('div');
-            div.className = `note ${note.color}`;
-            div.dataset.note = note.id;
-            div.style.setProperty('--rot', rot + 'deg');
-            div.style.cursor = selectedSticker ? 'crosshair' : 'grab';
-            div.draggable = !selectedSticker;
-            div.onclick = (e) => applySticker(note.id, e);
-            div.addEventListener('dragstart', e => onDragStart(e, note.id));
-            div.addEventListener('dragend', () => onDragEnd(note.id));
+  function onDragEnd(id) {
+    dragId = null;
+    const el = document.querySelector(`[data-note="${id}"]`);
+    if (el) el.classList.remove('dragging');
+    document.getElementById('boardZone').classList.remove('drag-over');
+    document.getElementById('doneZone').classList.remove('drag-over');
+  }
 
-            const dlClass = deadlineClass(note.deadline);
-            const dlDisplay = deadlineDisplay(note.deadline);
-            const dlLabel = dlClass === 'overdue' ? '🔴 ' : dlClass === 'soon' ? '🟡 ' : '📅 ';
+  function setupDropZone(zoneId, targetDone) {
+    const zone = document.getElementById(zoneId);
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (dragId === null) return;
+      const n = notes.find(n => n.id === dragId);
+      if (n && n.done !== targetDone) { n.done = targetDone; save(); render(); }
+    });
+  }
 
-            const stickersHTML = note.stickers.map((s, i) =>
-                `<span class="note-sticker" onclick="removeSticker(${note.id},${i},event)" title="คลิกเพื่อลบ">${s}</span>`
-            ).join('');
+  function buildNote(note, ni) {
+    const rot = ROTATIONS[ni % ROTATIONS.length];
+    const div = document.createElement('div');
+    div.className = `note ${note.color}`;
+    div.dataset.note = note.id;
+    div.style.setProperty('--rot', rot + 'deg');
+    div.style.cursor = selectedSticker ? 'crosshair' : 'grab';
+    div.draggable = !selectedSticker;
+    div.onclick = (e) => applySticker(note.id, e);
+    div.addEventListener('dragstart', e => onDragStart(e, note.id));
+    div.addEventListener('dragend', () => onDragEnd(note.id));
 
-            const itemsHTML = note.items.map((item, i) => `
+    const dlClass = deadlineClass(note.deadline);
+    const dlLabel = dlClass === 'overdue' ? '🔴' : dlClass === 'soon' ? '🟡' : '📅';
+
+    const stickersHTML = note.stickers.map((s, i) =>
+      `<span class="note-sticker" onclick="removeSticker(${note.id},${i},event)" title="คลิกเพื่อลบ">${s}</span>`
+    ).join('');
+
+    const itemsHTML = note.items.map((item, i) => `
       <li>
         <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItem(${note.id},${i})" />
         <input class="item-text ${item.done ? 'done' : ''}"
-          value="${escHtml(item.text)}"
-          placeholder="รายการ..."
+          value="${escHtml(item.text)}" placeholder="รายการ..."
           onchange="updateItem(${note.id},${i},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();addItem(${note.id})}"
-          onclick="event.stopPropagation()"
-        />
-      </li>
-    `).join('');
+          onclick="event.stopPropagation()" />
+      </li>`).join('');
 
-            div.innerHTML = `
+    div.innerHTML = `
       <div class="pin ${note.pin}"></div>
-      <button class="delete-note" onclick="event.stopPropagation();deleteNote(${note.id})" title="ลบโน้ต">✕</button>
+      <button class="delete-note" onclick="event.stopPropagation();deleteNote(${note.id})" title="ลบ">✕</button>
       <input class="note-title" value="${escHtml(note.title)}"
         onchange="updateTitle(${note.id},this.value)"
         onclick="event.stopPropagation()" placeholder="หัวข้อ..." />
       <div class="deadline-row" onclick="event.stopPropagation()">
-        <span class="deadline-icon">${note.deadline ? dlLabel : '📅'}</span>
+        <span class="deadline-icon">${dlLabel}</span>
         <input type="date" class="deadline-input ${dlClass}"
-          value="${note.deadline}"
-          onchange="updateDeadline(${note.id},this.value)"
-          title="กำหนดส่ง"
-        />
+          value="${note.deadline}" onchange="updateDeadline(${note.id},this.value)" />
       </div>
       <ul class="checklist">${itemsHTML}</ul>
       <button class="add-item-btn" onclick="event.stopPropagation();addItem(${note.id})">+ เพิ่มรายการ</button>
-      <div class="note-stickers">${stickersHTML}</div>
-    `;
-            return div;
-        }
+      <div class="note-stickers">${stickersHTML}</div>`;
+    return div;
+  }
 
-        function render() {
-            const activeNotes = notes.filter(n => !n.done);
-            const doneNotes = notes.filter(n => n.done);
+  function render() {
+    const active = notes.filter(n => !n.done);
+    const done   = notes.filter(n => n.done);
 
-            const area = document.getElementById('notesArea');
-            area.innerHTML = '';
-            activeNotes.forEach((note, ni) => area.appendChild(buildNote(note, ni)));
+    const area = document.getElementById('notesArea');
+    area.innerHTML = '';
+    active.forEach((n, i) => area.appendChild(buildNote(n, i)));
 
-            const doneArea = document.getElementById('doneArea');
-            doneArea.innerHTML = '';
-            doneNotes.forEach((note, ni) => doneArea.appendChild(buildNote(note, ni)));
+    const doneArea = document.getElementById('doneArea');
+    doneArea.innerHTML = '';
+    done.forEach((n, i) => doneArea.appendChild(buildNote(n, i)));
 
-            document.getElementById('doneCount').textContent = doneNotes.length;
-            document.getElementById('doneHint').style.display = doneNotes.length > 0 ? 'none' : 'block';
-        }
+    document.getElementById('doneCount').textContent = done.length;
+    document.getElementById('doneHint').style.display = done.length > 0 ? 'none' : 'block';
+  }
 
-        function escHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
-        setupDropZone('doneZone', true);
-        setupDropZone('boardZone', false);
-        buildStickerGrid();
-        render();
-    </script>
+  setupDropZone('doneZone', true);
+  setupDropZone('boardZone', false);
+  buildStickerGrid();
+  render();
+</script>
 </body>
-
 </html>

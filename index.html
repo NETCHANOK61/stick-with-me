@@ -17,12 +17,12 @@
         }
 
         :root {
-            --bg: #ffffff;
+            --bg: #f0f4ff;
             --cork: #d4956a;
-            --cork-dark: #b071409d;
+            --cork-dark: #b07040;
             --yellow: #ffe135;
             --pink: #ff6eb4;
-            --mint: #00e7f7dd;
+            --mint: #3de8b0;
         }
 
         html,
@@ -31,13 +31,22 @@
             overflow: hidden;
         }
 
+        @media (max-width: 600px) {
+
+            html,
+            body {
+                height: auto;
+                overflow: auto;
+            }
+        }
+
         body {
             font-family: 'Sarabun', sans-serif;
             background: var(--bg);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 12px 12px 8px;
+            align-items: stretch;
+            padding: 10px;
         }
 
         body::before {
@@ -54,7 +63,7 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 900px;
+            max-width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -155,7 +164,7 @@
         }
 
         .col-label {
-            font-size: 16px;
+            font-size: 11px;
             font-weight: 700;
             color: #2a2a5a;
             opacity: 0.55;
@@ -220,7 +229,7 @@
         }
 
         .done-title {
-            font-size: 18px;
+            font-size: 12px;
             font-weight: 700;
             color: #1a8a55;
         }
@@ -228,14 +237,14 @@
         .done-count {
             background: #22bb77;
             color: #fff;
-            font-size: 14px;
+            font-size: 10px;
             font-weight: 700;
             border-radius: 20px;
             padding: 1px 7px;
         }
 
         .done-hint {
-            font-size: 14px;
+            font-size: 11px;
             color: #88ccaa;
             text-align: center;
             margin-top: 20px;
@@ -345,7 +354,7 @@
         /* Note title — textarea ขยายอัตโนมัติ */
         .note-title {
             font-family: 'Sarabun', sans-serif;
-            font-size: 18px;
+            font-size: 12px;
             font-weight: 700;
             color: rgba(0, 0, 0, 0.75);
             background: transparent;
@@ -378,13 +387,13 @@
         }
 
         .deadline-icon {
-            font-size: 14px;
+            font-size: 10px;
             flex-shrink: 0;
         }
 
         .deadline-input {
             font-family: 'Sarabun', sans-serif;
-            font-size: 14px;
+            font-size: 10px;
             color: rgba(0, 0, 0, 0.5);
             background: rgba(0, 0, 0, 0.05);
             border: none;
@@ -452,7 +461,7 @@
         /* Item textarea — ขยายอัตโนมัติ */
         .item-text {
             font-family: 'Sarabun', sans-serif;
-            font-size: 14px;
+            font-size: 11px;
             color: rgba(0, 0, 0, 0.7);
             background: transparent;
             border: none;

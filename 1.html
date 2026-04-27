@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stick it</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Caveat:wght@700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --cork: #d4956a;
+    --cork-dark: #b071409d;
+    --yellow: #ffe135;
+    --pink: #ff6eb4;
+    --mint: #00e7f7dd;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 12px 8px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, #c8d4ff 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 900px;
+    height: 100%;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .app-title {
+    font-family: 'Caveat', cursive;
+    font-size: 28px; font-weight: 700; color: #2a2a5a; line-height: 1;
+  }
+  .btn-add {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px; font-weight: 700;
+    padding: 6px 16px; border-radius: 30px; border: none;
+    background: #2a2a5a; color: #fff; cursor: pointer;
+    box-shadow: 2px 2px 0 #111133;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .btn-add:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #111133; }
+  .btn-add:active { transform: translate(1px,1px); box-shadow: 0 0 0 #111133; }
+
+  .color-swatches { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    transition: transform 0.1s;
+  }
+  .swatch:hover { transform: scale(1.2); }
+  .swatch.selected { border-color: #2a2a5a; transform: scale(1.15); }
+  .swatch.yellow { background: var(--yellow); }
+  .swatch.pink   { background: var(--pink); }
+  .swatch.mint   { background: var(--mint); }
+
+  /* Main: 2 columns */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .board-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .col-label {
+    font-size: 16px; font-weight: 700; color: #2a2a5a;
+    opacity: 0.55; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0;
+  }
+
+  /* Cork board */
+  .board {
+    flex: 1; min-height: 0;
+    background: var(--cork); border-radius: 12px; padding: 14px;
+    position: relative;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.16);
+    background-image:
+      radial-gradient(ellipse at 15% 20%, rgba(255,255,255,0.12) 0%, transparent 55%),
+      repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.025) 5px, rgba(0,0,0,0.025) 6px);
+    border: 3px solid var(--cork-dark);
+    overflow-y: auto;
+    transition: box-shadow 0.2s;
+  }
+  .board.drag-over { box-shadow: 0 6px 20px rgba(0,0,0,0.16), inset 0 0 0 3px rgba(255,255,255,0.5); }
+  .board-frame {
+    position: absolute; inset: 0; border-radius: 10px;
+    border: 6px solid #8a5028; pointer-events: none;
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.22);
+  }
+
+  /* Done board */
+  .done-board {
+    flex: 1; min-height: 0;
+    background: #e6fdf2; border-radius: 12px; padding: 14px;
+    border: 3px dashed #5de0a0;
+    overflow-y: auto;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .done-board.drag-over { background: #ccf9e4; border-color: #22bb77; border-style: solid; }
+  .done-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .done-title { font-size: 18px; font-weight: 700; color: #1a8a55; }
+  .done-count {
+    background: #22bb77; color: #fff;
+    font-size: 14px; font-weight: 700;
+    border-radius: 20px; padding: 1px 7px;
+  }
+  .done-hint { font-size: 14px; color: #88ccaa; text-align: center; margin-top: 20px; }
+
+  .notes-area {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-content: flex-start;
+  }
+
+  /* Note */
+  .note {
+    width: calc(50% - 5px);
+    border-radius: 3px; padding: 14px 10px 8px;
+    position: relative;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; gap: 4px;
+    transform: rotate(var(--rot));
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+    cursor: grab; user-select: none;
+  }
+  .note:active { cursor: grabbing; }
+  .note:hover {
+    transform: rotate(0deg) scale(1.04);
+    box-shadow: 5px 5px 0px rgba(0,0,0,0.22);
+    z-index: 10;
+  }
+  .note.dragging { opacity: 0.4; transform: rotate(-1deg) scale(0.97); }
+  .note.yellow { background: var(--yellow); }
+  .note.pink   { background: var(--pink); }
+  .note.mint   { background: var(--mint); }
+
+  .done-board .note { opacity: 0.8; filter: saturate(0.65); }
+  .done-board .note:hover { filter: saturate(1); opacity: 1; }
+
+  /* Pin */
+  .pin {
+    width: 13px; height: 13px; border-radius: 50%;
+    position: absolute; top: -6px; left: 50%;
+    transform: translateX(-50%); z-index: 3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .pin::after {
+    content: ''; position: absolute;
+    width: 3px; height: 7px; background: rgba(0,0,0,0.18);
+    border-radius: 2px; top: 10px; left: 50%; transform: translateX(-50%);
+  }
+  .pin.red    { background: radial-gradient(circle at 35% 30%, #ff9090, #e02020); }
+  .pin.blue   { background: radial-gradient(circle at 35% 30%, #80b0ff, #2255dd); }
+  .pin.purple { background: radial-gradient(circle at 35% 30%, #d090ff, #8822cc); }
+  .pin.green  { background: radial-gradient(circle at 35% 30%, #80ffb0, #22aa55); }
+
+  /* Note title — textarea ขยายอัตโนมัติ */
+  .note-title {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 18px; font-weight: 700; color: rgba(0,0,0,0.75);
+    background: transparent; border: none; outline: none; width: 100%;
+    line-height: 1.5; border-bottom: 2px solid rgba(0,0,0,0.12); padding-bottom: 3px;
+    cursor: text; resize: none; overflow: hidden;
+    word-break: break-word;
+  }
+  .note.pink .note-title { color: rgba(255,255,255,0.95); border-bottom-color: rgba(255,255,255,0.3); }
+  .note.pink .note-title::placeholder { color: rgba(255,255,255,0.5); }
+
+  /* Deadline */
+  .deadline-row { display: flex; align-items: center; gap: 3px; }
+  .deadline-icon { font-size: 14px; flex-shrink: 0; }
+  .deadline-input {
+    font-family: 'Sarabun', sans-serif; font-size: 14px; color: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.05); border: none; outline: none;
+    border-radius: 3px; padding: 1px 4px; width: 100%; cursor: text;
+  }
+  .deadline-input:focus { background: rgba(0,0,0,0.1); }
+  .note.pink .deadline-input { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.15); }
+  .deadline-input.overdue { color: #e03030 !important; font-weight: 700; }
+  .deadline-input.soon    { color: #cc7700 !important; font-weight: 700; }
+  .note.pink .deadline-input.overdue { color: #ffcccc !important; }
+  .note.pink .deadline-input.soon    { color: #ffe0aa !important; }
+
+  /* Checklist */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+  .checklist li { display: flex; align-items: flex-start; gap: 4px; }
+  .checklist li input[type="checkbox"] {
+    width: 12px; height: 12px; cursor: pointer;
+    accent-color: #333; flex-shrink: 0; margin-top: 3px;
+  }
+  .note.pink .checklist li input[type="checkbox"] { accent-color: #fff; }
+
+  /* Item textarea — ขยายอัตโนมัติ */
+  .item-text {
+    font-family: 'Sarabun', sans-serif; font-size: 14px; color: rgba(0,0,0,0.7);
+    background: transparent; border: none; outline: none;
+    width: 100%; line-height: 1.5; cursor: text;
+    resize: none; overflow: hidden; word-break: break-word;
+  }
+  .note.pink .item-text { color: rgba(255,255,255,0.9); }
+  .note.pink .item-text::placeholder { color: rgba(255,255,255,0.45); }
+  .item-text.done { text-decoration: line-through; color: rgba(0,0,0,0.32); }
+  .note.pink .item-text.done { color: rgba(255,255,255,0.38); }
+
+  /* Delete item button */
+  .del-item-btn {
+    font-size: 9px; color: rgba(0,0,0,0.2);
+    background: none; border: none; cursor: pointer;
+    opacity: 0; transition: opacity 0.1s;
+    flex-shrink: 0; padding: 0 2px; margin-top: 2px; line-height: 1;
+  }
+  .checklist li:hover .del-item-btn { opacity: 1; }
+  .note.pink .del-item-btn { color: rgba(255,255,255,0.5); }
+
+  .add-item-btn {
+    font-family: 'Sarabun', sans-serif; font-size: 10px;
+    color: rgba(0,0,0,0.35); background: transparent;
+    border: none; cursor: pointer; text-align: left; padding: 1px 0 0;
+  }
+  .add-item-btn:hover { color: rgba(0,0,0,0.6); }
+  .note.pink .add-item-btn { color: rgba(255,255,255,0.4); }
+  .note.pink .add-item-btn:hover { color: rgba(255,255,255,0.75); }
+
+  .delete-note {
+    position: absolute; top: 4px; right: 5px;
+    font-size: 10px; color: rgba(0,0,0,0.2);
+    background: none; border: none; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s; line-height: 1;
+  }
+  .note.pink .delete-note { color: rgba(255,255,255,0.45); }
+  .note:hover .delete-note { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="app-title">Stick it 📌</div>
+    <button class="btn-add" onclick="addNote()">+ โน้ตใหม่</button>
+    <div class="color-swatches">
+      <div class="swatch yellow selected" data-color="yellow" onclick="selectColor(this)" title="เหลือง"></div>
+      <div class="swatch pink"   data-color="pink"   onclick="selectColor(this)" title="ชมพู"></div>
+      <div class="swatch mint"   data-color="mint"   onclick="selectColor(this)" title="มิ้นต์"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="board-col">
+      <div class="col-label">กำลังทำอยู่</div>
+      <div class="board" id="boardZone">
+        <div class="board-frame"></div>
+        <div class="notes-area" id="notesArea"></div>
+      </div>
+    </div>
+
+    <div class="board-col">
+      <div class="col-label">เสร็จแล้ว</div>
+      <div class="done-board" id="doneZone">
+        <div class="done-header">
+          <span style="font-size:16px;">✅</span>
+          <span class="done-title">ลากโน้ตมาวางที่นี่</span>
+          <span class="done-count" id="doneCount">0</span>
+        </div>
+        <div class="notes-area" id="doneArea"></div>
+        <div class="done-hint" id="doneHint">ยังไม่มีโน้ตที่เสร็จ</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const PINS = ['red','blue','purple','green'];
+  const ROTATIONS = [-2, 1.5, -1, 2.5, -0.5, 1, -2.5, 0.5];
+
+  let selectedColor = 'yellow';
+  let dragId = null;
+
+  const DEFAULT_NOTES = [
+    { id: 1, title: 'รายการซื้อของ', color: 'yellow', pin: 'red', deadline: '', done: false,
+      items: [{text:'นม', done: false},{text:'ไข่', done: true},{text:'ขนมปัง', done: false}] },
+    { id: 2, title: 'งานที่ต้องทำ', color: 'mint', pin: 'blue', deadline: '', done: false,
+      items: [{text:'ส่งรายงาน', done: false},{text:'ประชุมทีม', done: false}] },
+    { id: 3, title: 'แผนเที่ยว', color: 'pink', pin: 'purple', deadline: '', done: false,
+      items: [{text:'จองตั๋ว', done: false},{text:'จองโรงแรม', done: false}] },
+  ];
+
+  function loadData() {
+    try {
+      const s = localStorage.getItem('stickit-notes');
+      const id = localStorage.getItem('stickit-nextid');
+      return { notes: s ? JSON.parse(s) : DEFAULT_NOTES, nextId: id ? parseInt(id) : 4 };
+    } catch(e) { return { notes: DEFAULT_NOTES, nextId: 4 }; }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem('stickit-notes', JSON.stringify(notes));
+      localStorage.setItem('stickit-nextid', String(nextId));
+    } catch(e) {}
+  }
+
+  const _d = loadData();
+  let notes = _d.notes;
+  let nextId = _d.nextId;
+
+  function deadlineClass(dl) {
+    if (!dl) return '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(dl); d.setHours(0,0,0,0);
+    const diff = (d - today) / 86400000;
+    if (diff < 0) return 'overdue';
+    if (diff <= 2) return 'soon';
+    return '';
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function selectColor(el) {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = el.dataset.color;
+  }
+
+  function addNote() {
+    const pin = PINS[Math.floor(Math.random() * PINS.length)];
+    notes.push({ id: nextId++, title: '', color: selectedColor, pin, deadline: '', done: false, items: [] });
+    save(); render();
+    setTimeout(() => {
+      const tas = document.querySelectorAll('#notesArea .note-title');
+      if (tas.length) tas[tas.length-1].focus();
+    }, 30);
+  }
+
+  function deleteNote(id) {
+    notes = notes.filter(n => n.id !== id);
+    save(); render();
+  }
+
+  function addItem(noteId) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.items.push({text:'', done: false}); save(); render(); }
+    setTimeout(() => {
+      const items = document.querySelectorAll(`[data-note="${noteId}"] .item-text`);
+      if (items.length) items[items.length-1].focus();
+    }, 30);
+  }
+
+  function deleteItem(noteId, idx) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.items.splice(idx, 1); save(); render(); }
+  }
+
+  function toggleItem(noteId, idx) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.items[idx].done = !n.items[idx].done; save(); render(); }
+  }
+
+  function updateTitle(noteId, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.title = val; save(); }
+  }
+
+  function updateItem(noteId, idx, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n && n.items[idx]) { n.items[idx].text = val; save(); }
+  }
+
+  function updateDeadline(noteId, val) {
+    const n = notes.find(n => n.id === noteId);
+    if (n) { n.deadline = val; save(); render(); }
+  }
+
+  function onDragStart(e, id) {
+    dragId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => {
+      const el = document.querySelector(`[data-note="${id}"]`);
+      if (el) el.classList.add('dragging');
+    }, 0);
+  }
+
+  function onDragEnd(id) {
+    dragId = null;
+    const el = document.querySelector(`[data-note="${id}"]`);
+    if (el) el.classList.remove('dragging');
+    document.getElementById('boardZone').classList.remove('drag-over');
+    document.getElementById('doneZone').classList.remove('drag-over');
+  }
+
+  function setupDropZone(zoneId, targetDone) {
+    const zone = document.getElementById(zoneId);
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (dragId === null) return;
+      const n = notes.find(n => n.id === dragId);
+      if (n && n.done !== targetDone) { n.done = targetDone; save(); render(); }
+    });
+  }
+
+  function buildNote(note, ni) {
+    const rot = ROTATIONS[ni % ROTATIONS.length];
+    const div = document.createElement('div');
+    div.className = `note ${note.color}`;
+    div.dataset.note = note.id;
+    div.style.setProperty('--rot', rot + 'deg');
+    div.style.cursor = 'grab';
+    div.draggable = true;
+    div.addEventListener('dragstart', e => onDragStart(e, note.id));
+    div.addEventListener('dragend', () => onDragEnd(note.id));
+
+    const dlClass = deadlineClass(note.deadline);
+    const dlLabel = dlClass === 'overdue' ? '🔴' : dlClass === 'soon' ? '🟡' : '📅';
+
+    const itemsHTML = note.items.map((item, i) => `
+      <li>
+        <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItem(${note.id},${i})" />
+        <textarea class="item-text ${item.done ? 'done' : ''}" rows="1"
+          placeholder="รายการ..."
+          onchange="updateItem(${note.id},${i},this.value)"
+          oninput="autoResize(this)"
+          onclick="event.stopPropagation()"
+        >${escHtml(item.text)}</textarea>
+        <button class="del-item-btn" onclick="event.stopPropagation();deleteItem(${note.id},${i})" title="ลบ">✕</button>
+      </li>`).join('');
+
+    div.innerHTML = `
+      <div class="pin ${note.pin}"></div>
+      <button class="delete-note" onclick="event.stopPropagation();deleteNote(${note.id})" title="ลบโน้ต">✕</button>
+      <textarea class="note-title" rows="1"
+        placeholder="หัวข้อ..."
+        onchange="updateTitle(${note.id},this.value)"
+        oninput="autoResize(this)"
+        onclick="event.stopPropagation()"
+      >${escHtml(note.title)}</textarea>
+      <div class="deadline-row" onclick="event.stopPropagation()">
+        <span class="deadline-icon">${dlLabel}</span>
+        <input type="date" class="deadline-input ${dlClass}"
+          value="${note.deadline}" onchange="updateDeadline(${note.id},this.value)" />
+      </div>
+      <ul class="checklist">${itemsHTML}</ul>
+      <button class="add-item-btn" onclick="event.stopPropagation();addItem(${note.id})">+ เพิ่มรายการ</button>`;
+
+    setTimeout(() => div.querySelectorAll('textarea').forEach(autoResize), 0);
+    return div;
+  }
+
+  function render() {
+    const active = notes.filter(n => !n.done);
+    const done   = notes.filter(n => n.done);
+
+    const area = document.getElementById('notesArea');
+    area.innerHTML = '';
+    active.forEach((n, i) => area.appendChild(buildNote(n, i)));
+
+    const doneArea = document.getElementById('doneArea');
+    doneArea.innerHTML = '';
+    done.forEach((n, i) => doneArea.appendChild(buildNote(n, i)));
+
+    document.getElementById('doneCount').textContent = done.length;
+    document.getElementById('doneHint').style.display = done.length > 0 ? 'none' : 'block';
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  setupDropZone('doneZone', true);
+  setupDropZone('boardZone', false);
+  render();
+</script>
+</body>
+</html>
